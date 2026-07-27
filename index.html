@@ -10,11 +10,12 @@
       margin: 0;
       padding: 0;
       user-select: none;
+      -webkit-user-select: none;
     }
     body {
       background: #111;
       color: #fff;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: Arial, sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -22,161 +23,281 @@
       min-height: 100vh;
       overflow: hidden;
     }
-    #game-container {
+    #game-wrapper {
       position: relative;
-      border: 4px solid #fff;
-      box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+      width: 100vw;
+      max-width: 800px;
+      height: 50vw;
+      max-height: 400px;
+      background: #222;
+      border: 2px solid #555;
     }
     canvas {
-      background: #222;
+      width: 100%;
+      height: 100%;
       display: block;
     }
-    .ui-overlay {
+    /* Ekran Üstü UI */
+    .ui-layer {
       position: absolute;
       top: 10px;
-      left: 15px;
-      font-size: 20px;
-      font-weight: bold;
+      left: 10px;
+      right: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       pointer-events: none;
+      z-index: 5;
+    }
+    .level-title {
+      font-size: 18px;
+      font-weight: bold;
+      text-shadow: 1px 1px 3px #000;
+    }
+    .btn-ui {
+      background: #333;
+      color: #fff;
+      border: 1px solid #777;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      pointer-events: auto;
+    }
+    /* Başlangıç ve Menü Ekranı */
+    #start-screen {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.85);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      z-index: 10;
+    }
+    #start-screen h1 {
+      font-size: 32px;
+      color: #FFCC00;
       text-shadow: 2px 2px #000;
     }
-    /* Mobil Kontrol Butonları */
-    #mobile-controls {
-      display: none;
-      width: 100%;
-      max-width: 800px;
-      justify-content: space-between;
-      padding: 10px 20px;
-      margin-top: 10px;
+    .main-btn {
+      background: #00FF66;
+      color: #000;
+      font-weight: bold;
+      font-size: 18px;
+      border: none;
+      padding: 10px 25px;
+      border-radius: 8px;
+      cursor: pointer;
     }
-    .btn-group {
+    .file-input-label {
+      background: #444;
+      color: #fff;
+      padding: 8px 15px;
+      border-radius: 5px;
+      font-size: 13px;
+      cursor: pointer;
+      border: 1px solid #666;
+    }
+    /* Ekran Üzerine Sabitlenmiş Dokunmatik Tuşlar */
+    #touch-controls {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      right: 10px;
       display: flex;
-      gap: 15px;
+      justify-content: space-between;
+      pointer-events: none;
+      z-index: 6;
     }
-    .touch-btn {
-      width: 60px;
-      height: 60px;
-      background: rgba(255, 255, 255, 0.2);
-      border: 2px solid #fff;
+    .touch-group {
+      display: flex;
+      gap: 10px;
+      pointer-events: auto;
+    }
+    .t-btn {
+      width: 50px;
+      height: 50px;
+      background: rgba(255, 255, 255, 0.25);
+      border: 2px solid rgba(255, 255, 255, 0.6);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 24px;
+      font-size: 20px;
       color: #fff;
       touch-action: manipulation;
     }
-    .touch-btn:active {
-      background: rgba(255, 255, 255, 0.5);
-    }
-    @media (max-width: 850px) {
-      #mobile-controls { display: flex; }
+    .t-btn:active {
+      background: rgba(255, 255, 255, 0.6);
     }
   </style>
 </head>
 <body>
 
-  <div id="game-container">
-    <div class="ui-overlay">
-      <span id="level-title">OsLevel Devil - Seviye 1</span>
+  <div id="game-wrapper">
+    <!-- UI Üst Bilgi -->
+    <div class="ui-layer">
+      <div class="level-title" id="level-txt">OsLevel Devil</div>
+      <button class="btn-ui" onclick="downloadCurrentLevels()">Haritayı Dosya Olarak İndir (.json)</button>
     </div>
+
+    <!-- Başlangıç Menüsü -->
+    <div id="start-screen">
+      <h1>OsLevel Devil</h1>
+      <button class="main-btn" onclick="startGame()">OYUNA BAŞLA</button>
+      
+      <label class="file-input-label">
+        📂 Özel Harita Dosyası Yükle (.json)
+        <input type="file" id="level-file" accept=".json" style="display:none;" onchange="loadCustomLevelFile(event)">
+      </label>
+    </div>
+
     <canvas id="gameCanvas" width="800" height="400"></canvas>
-  </div>
 
-  <!-- Mobil Ekran Dokunmatik Tuşları -->
-  <div id="mobile-controls">
-    <div class="btn-group">
-      <div class="touch-btn" id="btn-left">◀</div>
-      <div class="touch-btn" id="btn-right">▶</div>
-    </div>
-    <div class="btn-group">
-      <div class="touch-btn" id="btn-jump">▲</div>
+    <!-- Mobil Dokunmatik Tuşlar -->
+    <div id="touch-controls">
+      <div class="touch-group">
+        <div class="t-btn" id="b-left">◀</div>
+        <div class="t-btn" id="b-right">▶</div>
+      </div>
+      <div class="touch-group">
+        <div class="t-btn" id="b-jump">▲</div>
+      </div>
     </div>
   </div>
-
-  <!-- External Harita Dosyası -->
-  <script src="levels.js"></script>
 
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
 
+    // Varsayılan Dahili Haritalar
+    let defaultLevels = [
+      {
+        playerStart: { x: 50, y: 300 },
+        door: { x: 700, y: 280 },
+        platforms: [
+          { x: 0, y: 350, width: 250, height: 50 },
+          { x: 250, y: 350, width: 150, height: 50, fallOnTouch: true, falling: false },
+          { x: 400, y: 350, width: 150, height: 50, disappearOnApproach: true, visible: true },
+          { x: 600, y: 350, width: 200, height: 50 }
+        ],
+        spikes: [{ x: 150, y: 330, width: 30, height: 20 }],
+        trolls: { trollDoor: true, trollDoorTriggerX: 620, trollDoorTargetX: 720 }
+      },
+      {
+        playerStart: { x: 50, y: 300 },
+        door: { x: 700, y: 100 },
+        reverseControls: true,
+        platforms: [
+          { x: 0, y: 350, width: 200, height: 50 },
+          { x: 250, y: 250, width: 150, height: 20 },
+          { x: 450, y: 180, width: 150, height: 20 },
+          { x: 650, y: 150, width: 150, height: 20 }
+        ],
+        spikes: [{ x: 300, y: 230, width: 30, height: 20, moving: true, speed: 2, range: 80, startX: 300 }]
+      }
+    ];
+
+    let gameLevels = JSON.parse(JSON.stringify(defaultLevels));
     let currentLevelIndex = 0;
     let currentLevel = null;
+    let isGameRunning = false;
 
-    // Oyuncu Nesnesi
     const player = {
-      x: 0,
-      y: 0,
-      width: 24,
-      height: 24,
-      vx: 0,
-      vy: 0,
-      speed: 4,
-      jumpForce: 10.5,
-      gravity: 0.45,
-      grounded: false,
-      color: "#FFCC00"
+      x: 0, y: 0, width: 24, height: 24,
+      vx: 0, vy: 0, speed: 4, jumpForce: 10.5,
+      gravity: 0.45, grounded: false, color: "#FFCC00"
     };
 
-    // Girdi Durumu
     const keys = { left: false, right: false, jump: false };
 
-    // Dinleyiciler - Klavye
+    // Klavye Kontrolleri
     window.addEventListener("keydown", (e) => {
       if (e.key === "ArrowLeft" || e.key === "a") keys.left = true;
       if (e.key === "ArrowRight" || e.key === "d") keys.right = true;
       if (e.key === "ArrowUp" || e.key === "w" || e.key === " ") keys.jump = true;
     });
-
     window.addEventListener("keyup", (e) => {
       if (e.key === "ArrowLeft" || e.key === "a") keys.left = false;
       if (e.key === "ArrowRight" || e.key === "d") keys.right = false;
       if (e.key === "ArrowUp" || e.key === "w" || e.key === " ") keys.jump = false;
     });
 
-    // Mobil Dokunmatik Eventler
+    // Mobil Dokunmatik Bitişiklikler
     const bindTouch = (id, key) => {
       const el = document.getElementById(id);
       el.addEventListener("touchstart", (e) => { e.preventDefault(); keys[key] = true; });
       el.addEventListener("touchend", (e) => { e.preventDefault(); keys[key] = false; });
     };
-    bindTouch("btn-left", "left");
-    bindTouch("btn-right", "right");
-    bindTouch("btn-jump", "jump");
+    bindTouch("b-left", "left");
+    bindTouch("b-right", "right");
+    bindTouch("b-jump", "jump");
 
-    // Seviye Yükleme Fonksiyonu
+    function startGame() {
+      document.getElementById("start-screen").style.display = "none";
+      isGameRunning = true;
+      currentLevelIndex = 0;
+      loadLevel(currentLevelIndex);
+    }
+
     function loadLevel(index) {
-      if (index >= LEVELS.length) {
+      if (index >= gameLevels.length) {
         alert("TEBRİKLER! TÜM BÖLÜMLERİ BİTİRDİN!");
-        currentLevelIndex = 0;
+        document.getElementById("start-screen").style.display = "flex";
+        isGameRunning = false;
+        return;
       }
-      
-      // Derin kopyalama ile veriyi sıfırla
-      currentLevel = JSON.parse(JSON.stringify(LEVELS[currentLevelIndex]));
+      currentLevel = JSON.parse(JSON.stringify(gameLevels[index]));
       player.x = currentLevel.playerStart.x;
       player.y = currentLevel.playerStart.y;
       player.vx = 0;
       player.vy = 0;
-      
-      document.getElementById("level-title").innerText = `OsLevel Devil - Seviye ${currentLevelIndex + 1}`;
+      document.getElementById("level-txt").innerText = `OsLevel Devil - Seviye ${index + 1}`;
     }
 
-    // AABB Çarpışma Testi
-    function isColliding(rect1, rect2) {
-      return (
-        rect1.x < rect2.x + rect2.width &&
-        rect1.x + rect1.width > rect2.x &&
-        rect1.y < rect2.y + rect2.height &&
-        rect1.y + rect1.height > rect2.y
-      );
+    // Dosyadan Harita Yükleme Fonksiyonu
+    function loadCustomLevelFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const loadedData = JSON.parse(e.target.result);
+          if (Array.isArray(loadedData)) {
+            gameLevels = loadedData;
+            alert("Yeni harita dosyası başarıyla yüklendi! Toplam Seviye: " + gameLevels.length);
+          } else {
+            alert("Geçersiz harita dosyası formatı!");
+          }
+        } catch (err) {
+          alert("Hata: JSON dosyası okunamadı.");
+        }
+      };
+      reader.readAsText(file);
     }
 
-    // Oyun Döngüsü - Güncelleme
+    // Mevcut Haritayı JSON Dosyası Olarak İndirme
+    function downloadCurrentLevels() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(gameLevels, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", "oslevel_levels.json");
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    function isColliding(r1, r2) {
+      return (r1.x < r2.x + r2.width && r1.x + r1.width > r2.x &&
+              r1.y < r2.y + r2.height && r1.y + r1.height > r2.y);
+    }
+
     function update() {
-      if (!currentLevel) return;
+      if (!isGameRunning || !currentLevel) return;
 
-      // Kontroller ve Ters Kontrol Mekaniği
       let moveLeft = currentLevel.reverseControls ? keys.right : keys.left;
       let moveRight = currentLevel.reverseControls ? keys.left : keys.right;
 
@@ -189,20 +310,15 @@
         player.grounded = false;
       }
 
-      // Fizik Güncelleme
       player.vy += player.gravity;
       player.x += player.vx;
 
-      // Yatay Çarpışma ve Platform Mekaniği
       currentLevel.platforms.forEach(plat => {
         if (plat.visible === false) return;
-
-        // Troll Mekaniği: Yaklaşınca kaybolan zemin
         if (plat.disappearOnApproach) {
           let dist = Math.abs((player.x + player.width/2) - (plat.x + plat.width/2));
           if (dist < 80) plat.visible = false;
         }
-
         if (isColliding(player, plat)) {
           if (player.vx > 0) player.x = plat.x - player.width;
           else if (player.vx < 0) player.x = plat.x + plat.width;
@@ -212,80 +328,55 @@
       player.y += player.vy;
       player.grounded = false;
 
-      // Düşey Çarpışma
       currentLevel.platforms.forEach(plat => {
         if (plat.visible === false) return;
-
         if (isColliding(player, plat)) {
-          if (player.vy > 0) { // Düşerken zemine basma
+          if (player.vy > 0) {
             player.y = plat.y - player.height;
             player.vy = 0;
             player.grounded = true;
-
-            // Troll Mekaniği: Dokununca düşen zemin
             if (plat.fallOnTouch) plat.falling = true;
-          } else if (player.vy < 0) { // Tavana çarpma
+          } else if (player.vy < 0) {
             player.y = plat.y + plat.height;
             player.vy = 0;
           }
         }
-
-        // Düşen platform hariti
-        if (plat.falling) {
-          plat.y += 6;
-        }
+        if (plat.falling) plat.y += 6;
       });
 
-      // Hareket Eden Dikenler Güncellemesi
       if (currentLevel.spikes) {
         currentLevel.spikes.forEach(spike => {
           if (spike.moving) {
             spike.x += spike.speed;
-            if (Math.abs(spike.x - spike.startX) > spike.range) {
-              spike.speed *= -1;
-            }
+            if (Math.abs(spike.x - spike.startX) > spike.range) spike.speed *= -1;
           }
-          // Diken Çarpışması -> Ölüm!
-          if (isColliding(player, spike)) {
-            loadLevel(currentLevelIndex); // Yeniden Başlat
-          }
+          if (isColliding(player, spike)) loadLevel(currentLevelIndex);
         });
       }
 
-      // Sahte Kapı Trollü
       if (currentLevel.trolls && currentLevel.trolls.trollDoor) {
         if (player.x > currentLevel.trolls.trollDoorTriggerX) {
           currentLevel.door.x = currentLevel.trolls.trollDoorTargetX;
         }
       }
 
-      // Bölüm Sonu / Kapıya Ulaşma
       if (isColliding(player, { x: currentLevel.door.x, y: currentLevel.door.y, width: 30, height: 40 })) {
         currentLevelIndex++;
         loadLevel(currentLevelIndex);
       }
 
-      // Haritadan Aşağı Düşme Durumu
-      if (player.y > canvas.height + 100) {
-        loadLevel(currentLevelIndex);
-      }
+      if (player.y > canvas.height + 100) loadLevel(currentLevelIndex);
     }
 
-    // Ekran Çizimi
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (!isGameRunning || !currentLevel) return;
 
-      if (!currentLevel) return;
-
-      // Platformları Çiz
       ctx.fillStyle = "#fff";
       currentLevel.platforms.forEach(plat => {
-        if (plat.visible !== false) {
-          ctx.fillRect(plat.x, plat.y, plat.width, plat.height);
-        }
+        if (plat.visible !== false) ctx.fillRect(plat.x, plat.y, plat.width, plat.height);
       });
 
-      // Dikenleri Çiz (Tuzaklar)
       ctx.fillStyle = "#FF3333";
       if (currentLevel.spikes) {
         currentLevel.spikes.forEach(spike => {
@@ -297,24 +388,19 @@
         });
       }
 
-      // Kapıyı Çiz (Hedef)
       ctx.fillStyle = "#00FF66";
       ctx.fillRect(currentLevel.door.x, currentLevel.door.y, 30, 40);
 
-      // Oyuncuyu Çiz
       ctx.fillStyle = player.color;
       ctx.fillRect(player.x, player.y, player.width, player.height);
     }
 
-    // Ana Döngü
     function loop() {
       update();
       draw();
       requestAnimationFrame(loop);
     }
 
-    // Başlat
-    loadLevel(currentLevelIndex);
     loop();
   </script>
 </body>
